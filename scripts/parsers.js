@@ -1,5 +1,6 @@
 function parseSamples(d) {
   var s_time = parseTime(d.time);
+  // console.log(d)
   return {
     time: s_time, // convert "Year" column to Date
     DeviceId: d.DeviceId,

@@ -1,8 +1,9 @@
 
 var counter = 0;
-$('.checkbox').checkbox({
+$('.ui.radio.checkbox').checkbox({
   onChange: function(){
     val = $(this)[0].id;
+    console.log($(this))
     if (ui_current_state.get("component")!= "val"){
         ui_current_state.set("component", val)
 
@@ -47,6 +48,7 @@ $('.checkbox').checkbox({
     ui_current_state.set("data_needs_to_filter", 0)
 
     updateViz()
+    staticAnimate()
   }
 })
 
@@ -68,7 +70,7 @@ $( '.ui.button#pause' ).click(function() {
 })
 
 formatDate=d3.timeParse("%b %d");;
-var margin={top:5,right:1,bottom:1,left:1},width=960-margin.left-margin.right,height=54;
+var margin={top:5,right:1,bottom:1,left:1},width=window.innerWidth-margin.left-margin.right,height=54;
 var timeScale=d3.scaleTime().domain([new Date('2012-01-02'),new Date('2013-01-01')]).range([0,width]).clamp(true);
 var startValue=timeScale(new Date('2012-03-20'));
 var brush=d3.brushX()
@@ -87,13 +89,13 @@ function brushed(){
 }
 
 
-var time_line_width = 450;
+var time_line_width = 400;
 
 
-var time_line = d3.select("#range-speed").append("svg").attr("height", 50).attr("width", time_line_width).attr('color', 'white')
+var time_line = d3.select("#range-speed").append("svg").attr("id","svgcontainer").attr("height", 50).attr('color', 'white').attr("width", time_line_width)
 
 
 var container = time_line.append("g")
 
-time_line.append("g").attr('transform', 'translate(' + 0 + ',' + 15 + ')').attr("class","timeline").append("rect").attr("height", 1).attr("width", time_line_width).style('color', '#ffffff');
-
+time_line.attr("class","timeline").append("rect").attr("x", 0).attr("y", 15).attr("height", 1).attr("width", time_line_width).style('color', '#ffffff');
+// .attr('transform', 'translate(' + 5 + ',' + 15 + ')')

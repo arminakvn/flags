@@ -13,7 +13,8 @@ var data_map = d3.map();
 // var axis_width_range = ["Wed Aug 24 2016 00:00:00 GMT-0400 (EDT)","Wed Aug 24 2016 23:59:59 GMT-0400 (EDT)"]
 var anotHelper = d3.map()
 var coloHelper = d3.map()
-
+var total_drag_move = 0.0;
+var inital_pick_dislocation = 0;
 var scene, renderer;
 			var mouseX = 0, mouseY = 0;
 
@@ -56,7 +57,7 @@ anotHelper.set("frequency", ["High","Voice", "Base"])
 function loadData(){
 	d3.queue()
 		.defer(d3.csv,"public/locationsinter.csv", parseLocations) //locations_nest
-    .defer(d3.csv,"public/res2.csv", parseSamples)
+    .defer(d3.csv,"public/res3.csv", parseSamples)
     .await(callbackDataLoaded)
 }
 
@@ -70,7 +71,7 @@ requestStream = new (function(){
 
 	};
 	this.totaltime = 49200000;
-	this.dt_intervals = 164;
+	this.dt_intervals = 287;
 	this.dt = 0;
 	this.frame_counter = 0;
 	this.frequency = .5;
@@ -434,7 +435,8 @@ function initializeScene(data){
 	}
 	// setting renderer properties
 	renderer.setClearColor(0x00000, 1);
-	canvasWidth = .8 * window.innerWidth;
+	// console.log("canvas width", $("#WebGLCanvas")[0].innerWidth;)
+	canvasWidth = $("#WebGLCanvas")[0].innerWidth;
 	canvasHeight = window.innerHeight-300;
 	renderer.setSize(canvasWidth, canvasHeight);
 	document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
@@ -848,7 +850,7 @@ controlables.push(boxMesh,street_surf_group,street_surf_group2,street_surf_group
 
 var axisHelper = new THREE.AxisHelper( 500 );
 parrent = scene
-controls = new THREE.OrbitControls(camera);
+controls = new THREE.OrbitControls(camera, renderer.domElement);
 // controls.maxPolarAngle = Math.PI/2;
 controls.minDistance = 1;
 controls.maxDistance = 33;
@@ -980,15 +982,295 @@ function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 
-  renderer.setSize( window.innerWidth - 300, window.innerHeight -300);
+  renderer.setSize( window.innerWidth, window.innerHeight -300);
 
   renderScene();
 
 }
 fps = 10;
+
+function staticAnimate(){
+
+	// if (requestStream.frame_counter > frameConfig.numPoints-1){
+	// 		requestStream.frame_counter = 0;
+	// 		var t = requestStream.frame_counter;
+	// 		requestStream.frame_counter += 1;
+	// 		// updateDynamicText()
+	// } else {
+	// 	var t = requestStream.frame_counter;
+	// 	requestStream.frame_counter = t + 1;
+		
+	// }
+
+	// console.log("t",t,street_lines_group)
+  //if (ui_current_state.get("data_needs_to_filter") > 0){
+  //  data  = filterData()
+  //}
+
+// console.log(street_surf_group)
+// console.log(kjwekj)
+	for (var sn = 0; sn < street_surf_group.children.length; sn++){
+		for (var vert = 0; vert < street_surf_group.children[sn].geometry.vertices.length; vert++){
+
+
+
+			// count = t;
+			// var vir_v = vert - count - 1;
+
+			// if (vir_v < 0){
+			// 	var bufferIndex = vir_v + frameConfig.numPoints;
+
+			// }
+			// else if (vir_v < street_surf_group.children[sn].num_of_street_devices - 1){
+			// 	var bufferIndex = vir_v;
+			// }	else {
+			// 	var bufferIndex = vir_v;
+			// }
+			// ui_current_state.set("buffr_ind",buffr_ind);
+			// if (count = 1){
+			// 	bufferIndex = 0
+			// } 
+
+
+
+			//console.log("requestStream.frame_counter",requestStream.frame_counter)
+			var bufferIndex = Math.floor(ui_current_state.get("bufferIndex"))
+			console.log("bufferIndex in static animate ", bufferIndex)
+			if (vert == 0){
+
+				// var va = datamap.get(datamap.keys()[bufferIndex]);
+				// ui_current_state.set("data_map_buffr_ind", [datamap.keys()[bufferIndex]]);
+
+
+
+				// console.log(lsdj)
+
+				var deviceid = street_surf_group.children[sn].userData[vert]
+
+				datamap = samples_mapped.get(deviceid) 
+				// else: var va = datamap.get(ui_current_state.get("data_map_buffr_ind")[0]);
+
+				var va = datamap.get(datamap.keys()[bufferIndex]);
+				ui_current_state.set("data_map_buffr_ind", [datamap.keys()[bufferIndex]]);
+
+				if (ui_current_state.get("slider_decides") == 0) {
+					// updateDynamicText()
+					ui_current_state.set("data_map_buffr_ind", [datamap.keys()[bufferIndex]]);
+				}
+
+
+				function getZVal(va){
+					var Leqdba = va.get("Leqdba")
+					var Lmaxdba = va.get("Lmaxdba")
+					var Lmindba = va.get("Lmindba")
+
+					var Voice = va.get("Voice")
+					var High = va.get("High")
+					var Base = va.get("Base")
+					if (ui_current_state.get("component") == "frequency"){
+						var vals = []
+						vals.push(scalerConfig.Leqdba_scale(Leqdba),scalerConfig.Lmaxdba_scale(Lmaxdba),scalerConfig.Lmindba_scale(Lmindba))
+						return vals
+					} else {
+						var vals = []
+						vals.push(scalerConfig.Voice_scale(Voice),scalerConfig.High_scale(High),scalerConfig.Base_scale(Base))
+						return vals
+					}
+
+				}
+
+				var zVals = getZVal(va)
+
+				axis_lines_group.children[sn].children[vert].children[0].geometry.vertices[1].z = zVals[1]
+				street_surf_group.children[sn].geometry.vertices[1].z = zVals[0]
+				street_surf_group2.children[sn].geometry.vertices[1].z = zVals[1]
+				street_surf_group3.children[sn].geometry.vertices[1].z = zVals[2]
+				street_surf_group.children[sn].geometry.vertices[0].z = 0 * frameConfig.bandHeight;
+				street_surf_group2.children[sn].geometry.vertices[0].z = 0 * frameConfig.bandHeight;
+				street_surf_group3.children[sn].geometry.vertices[0].z = 0;
+
+
+
+			} else if (vert == street_surf_group.children[sn].geometry.vertices.length / 2){
+				var deviceid = street_surf_group.children[sn].userData[street_surf_group.children[sn].num_of_street_devices-1]
+
+				datamap = samples_mapped.get(deviceid)
+
+				var va = datamap.get(datamap.keys()[bufferIndex]);
+				if (ui_current_state.get("slider_decides") == 0) {
+					// updateDynamicText()
+					ui_current_state.set("data_map_buffr_ind", [datamap.keys()[bufferIndex]]);
+				}
+
+				// else: var va = datamap.get(ui_current_state.get("data_map_buffr_ind")[0]);
+
+				var Leqdba = va.get("Leqdba")
+											var Lmaxdba = va.get("Lmaxdba")
+											var Lmindba = va.get("Lmindba")
+
+
+
+				function getZVal(va){
+												var Leqdba = va.get("Leqdba")
+												var Lmaxdba = va.get("Lmaxdba")
+												var Lmindba = va.get("Lmindba")
+
+												var Voice = va.get("Voice")
+												var High = va.get("High")
+												var Base = va.get("Base")
+												if (ui_current_state.get("component") == "frequency"){
+													var vals = []
+													vals.push(scalerConfig.Leqdba_scale(Leqdba),scalerConfig.Lmaxdba_scale(Lmaxdba),scalerConfig.Lmindba_scale(Lmindba))
+
+													return vals
+												} else {
+													var vals = []
+													vals.push(scalerConfig.Voice_scale(Voice),scalerConfig.High_scale(High),scalerConfig.Base_scale(Base))
+													return vals
+												}
+
+											}
+
+			var zVals = getZVal(va)
+
+					street_surf_group.children[sn].geometry.vertices[vert].z = zVals[0];
+					street_surf_group2.children[sn].geometry.vertices[vert].z = zVals[1]
+					street_surf_group3.children[sn].geometry.vertices[vert].z = zVals[2]
+
+
+			} else if (vert > (street_surf_group.children[sn].geometry.vertices.length / 2)-1){
+				street_surf_group.children[sn].geometry.vertices[vert].z = 0 * frameConfig.bandHeight;
+				street_surf_group2.children[sn].geometry.vertices[vert].z = 0 * frameConfig.bandHeight;
+				street_surf_group3.children[sn].geometry.vertices[vert].z = 0;
+
+					// street_surf_group.children[sn].geometry.vertices[vert].z = 0;
+
+			} else {
+				var deviceid = street_surf_group.children[sn].userData[vert]
+				datamap = samples_mapped.get(deviceid)
+
+				var va = datamap.get(datamap.keys()[bufferIndex]);
+
+				if (ui_current_state.get("slider_decides") == 0) {
+					// updateDynamicText()
+					ui_current_state.set("data_map_buffr_ind", [datamap.keys()[bufferIndex]]);
+				}
+
+
+
+				var Leqdba = va.get("Leqdba")
+											var Lmaxdba = va.get("Lmaxdba")
+											var Lmindba = va.get("Lmindba")
+
+
+
+
+				function getZVal(va){
+					var Leqdba = va.get("Leqdba")
+					var Lmaxdba = va.get("Lmaxdba")
+					var Lmindba = va.get("Lmindba")
+
+					var Voice = va.get("Voice")
+					var High = va.get("High")
+					var Base = va.get("Base")
+					if (ui_current_state.get("component") == "frequency"){
+						var vals = []
+						vals.push(scalerConfig.Leqdba_scale(Leqdba),scalerConfig.Lmaxdba_scale(Lmaxdba),scalerConfig.Lmindba_scale(Lmindba))
+						return vals
+					} else {
+						var vals = []
+						vals.push(scalerConfig.Voice_scale(Voice),scalerConfig.High_scale(High),scalerConfig.Base_scale(Base))
+						return vals
+					}
+
+				}
+
+
+				var colorVals = getColors()
+
+				street_surf_group.children[sn].material.color = colorVals[0]
+				street_surf_group2.children[sn].material.color = colorVals[1]
+				street_surf_group3.children[sn].material.color = colorVals[2]
+
+
+
+
+				var zVals = getZVal(va)
+
+				street_surf_group.children[sn].geometry.vertices[vert].z = zVals[0]
+				street_surf_group2.children[sn].geometry.vertices[vert].z = zVals[1]
+				street_surf_group3.children[sn].geometry.vertices[vert].z = zVals[2]
+
+				// console.log(dash_value_line_group.children[sn].children[vert])
+
+
+				dash_value_line_group.children[sn].children[vert].children.forEach(function(vd){
+					// console.log(vd)
+					dev_d = vd.userData["device_id"]
+					var datamapd = samples_mapped.get(dev_d)
+
+					var vad = datamapd.get(datamapd.keys()[bufferIndex]);
+					function getZVal(va){
+						var Leqdba = va.get("Leqdba")
+						var Lmaxdba = va.get("Lmaxdba")
+						var Lmindba = va.get("Lmindba")
+
+						var Voice = va.get("Voice")
+						var High = va.get("High")
+						var Base = va.get("Base")
+						if (ui_current_state.get("component") == "frequency"){
+							var vals = []
+							vals.push(scalerConfig.Leqdba_scale(Leqdba),scalerConfig.Lmaxdba_scale(Lmaxdba),scalerConfig.Lmindba_scale(Lmindba))
+							return vals
+						} else {
+							var vals = []
+							vals.push(scalerConfig.Voice_scale(Voice),scalerConfig.High_scale(High),scalerConfig.Base_scale(Base))
+							return vals
+						}
+
+					}
+
+					var zValsd = getZVal(vad)
+					// ui_current_state.set("data_map_buffr_ind", [datamap.keys()[bufferIndex]]);
+					vd.geometry.vertices[0].y = zValsd[1]
+					vd.geometry.vertices[1].y =  zValsd[1]
+					vd.geometry.verticesNeedUpdate = true;
+				})
+
+				axis_lines_group.children[sn].children[0].children[vert].geometry.vertices[1].z = zVals[1];
+
+
+				axis_lines_group.children[sn].children[0].children[vert].geometry.verticesNeedUpdate = true;
+
+
+
+
+
+			}
+			street_surf_group.children[sn].geometry.verticesNeedUpdate = true;
+			street_surf_group2.children[sn].geometry.verticesNeedUpdate = true;
+			street_surf_group3.children[sn].geometry.verticesNeedUpdate = true;
+
+		}
+		
+		
+
+
+	}
+
+
+
+	update();
+
+
+ 	renderScene();
+}
+
+
+
 function animateScene(timestamp){
 	var progress = timestamp - start;
-	updateDynamicText()
+	
 
 	// console.log(timestamp, progress)
   // d.style.left = Math.min(progress/10, 200) + "px";
@@ -1001,29 +1283,29 @@ function animateScene(timestamp){
   
 
 
-	for (var ini=0; ini < componentTextGroup.children.length; ini++){
-		rotateBillboard(componentTextGroup.children[ini]);
-	}
+	//for (var ini=0; ini < componentTextGroup.children.length; ini++){
+	//	rotateBillboard(componentTextGroup.children[ini]);
+	//}
 
 // console.log(axis_lines_group)
 // console.log(lkjnsdlk)
 
 // console.log(ui_current_state)
 	if (requestStream.frame_counter > frameConfig.numPoints-1){
-			requestStream.frame_counter = 1;
+			requestStream.frame_counter = 0;
 			var t = requestStream.frame_counter;
 			requestStream.frame_counter += 1;
 			// updateDynamicText()
 	} else {
 		var t = requestStream.frame_counter;
-		requestStream.frame_counter += 1;
+		requestStream.frame_counter = t + 1;
 		
 	}
 
 	// console.log("t",t,street_lines_group)
-  if (ui_current_state.get("data_needs_to_filter") > 0){
-    data  = filterData()
-  }
+  //if (ui_current_state.get("data_needs_to_filter") > 0){
+  //  data  = filterData()
+  //}
 
 // console.log(street_surf_group)
 // console.log(kjwekj)
@@ -1044,7 +1326,7 @@ function animateScene(timestamp){
 			}	else {
 				var bufferIndex = vir_v;
 			}
-			// ui_current_state.set("buffr_ind",buffr_ind);
+			ui_current_state.set("bufferIndex",bufferIndex);
 			// if (count = 1){
 			// 	bufferIndex = 0
 			// } 
@@ -1311,6 +1593,7 @@ function animateScene(timestamp){
 
 frametimeout = setTimeout(function() {
         myReq = requestAnimationFrame(animateScene);
+        textReq = requestAnimationFrame(updateDynamicText)
         // Drawing code goes here
     }, 1000 / fps);
 
@@ -1370,17 +1653,29 @@ function updateDynamicText(){
 
 	var width_scale = d3.scaleTime().range([0,time_line_width]).domain(scalerConfig.time_range)
 	var reverse_width_scale = d3.scaleTime().domain([0,time_line_width]).range(scalerConfig.time_range)
-	var width_range_scale = d3.scaleLinear().domain([0,time_line_width]).range(0, scalerConfig.numPoints)
+	var width_range_scale = d3.scaleLinear().domain([0,time_line_width]).range([0, frameConfig.numPoints])
+	var flip_width_range_scale = d3.scaleLinear().range([0,time_line_width]).domain([0, frameConfig.numPoints])
+
+	var flip = d3.scaleTime().range([0,time_line_width]).domain(scalerConfig.time_range)
 	handle = container.selectAll(".slider.handle")
 
 	handle_enter = handle.data([width_scale(buffertime)]).enter().append("g").attr("class", "slider handle").attr(
 		"width", 1
 	).attr(
 		"height", 5
-	).append("circle").attr("class","d3-slider-handle").attr("r", 8).style("fill","#ffffff").attr("z-index","100000000").attr("border","1px solid #ffffff").attr('cy', 10).call(d3.drag().on("drag",dragmove).on("end", dragend)).on("mouseover",function(d){
+	).append("circle").attr("class","d3-slider-handle").attr("r", 9).style("fill","#ffffff").attr("z-index","100000000").attr("border","1px solid #ffffff").attr('cx', 10).attr('cy', 10
+	// ).call(
+	// d3.drag().on("drag",dragmove).on("start",dragstart).on("end", dragend)
+	).on("mouseover",function(d){
 		// console.log(myReq, frametimeout);/
-		clearTimeout(frametimeout);
-		cancelAnimationFrame(myReq);
+		//.container(function(){return d3.select("svg")._groups[0][0];})
+		// cancelAnimationFrame(myReq);
+		// cancelAnimationFrame(textReq);
+		// clearTimeout(frametimeout);
+		// console.log("stop on mouseover", d, ui_current_state.get("bufferIndex"),  width_scale(d3.isoParse (ui_current_state.get("data_map_buffr_ind")[0])))
+		// ui_current_state.set("bu",d3.isoParse (ui_current_state.get("data_map_buffr_ind")[0]))
+		//dragend();
+		
 		// console.log( d3.event.x,width_range_scale( d3.event.x))
 		// ui_current_state.set("delay", 3000)
 	})
@@ -1392,19 +1687,20 @@ function updateDynamicText(){
 	//
 	// 				requestAnimationFrame(animateScene);
 	// })
-	var drag = d3.drag()
-        .on("drag", function(d,i) {
+	// var drag = d3.drag()
+        // .on("drag", function(d,i) {
 
-            d.x += d3.event.dx
-            d.y += d3.event.dy
-            ui_current_state.set("data_map_buffr_ind",[reverse_width_scale(d.x)])
+            // d.x += d3.event.dx
+            // d.y += d3.event.dy
+            // console.log("drag's x position", d.x)
+            // ui_current_state.set("data_map_buffr_ind",[reverse_width_scale(d.x)])
             // console.log("width_range_scale(d3.x)",width_range_scale(d.x))
 
             // ui_current_state.set("buffr_ind",width_range_scale(d3.x))
-            d3.select(this).attr("transform", function(d,i){
-                return "translate(" + [ d.x,d.y ] + ")"
-            })
-        });
+            //d3.select(this).attr("transform", function(d,i){
+            //    return "translate(" + [ d.x,d.y ] + ")"
+            //})
+        // });
 	handle.exit().remove()
 	handle.attr('height', 10).attr('transform', function(d){
 		return  'translate(' + d + ',' + 6 + ')'
@@ -1413,36 +1709,86 @@ function updateDynamicText(){
 
 			// var drag = d3.behavior.drag()
 			//     .on("drag", dragmove);
-			function dragend(d) {
+			function dragstart(d) {
+				// console.log(d3.select(this))
+				if (inital_pick_dislocation == 0) {inital_pick_dislocation = d3.event.x}
+				// console.log("d3.event.x",d3.event.x)
+				// console.log("current state bufferIndex",ui_current_state.get("bufferIndex"))
+				// console.log("flip scale the buffer index",flip_width_range_scale(ui_current_state.get("bufferIndex")))
+				// console.log("400 - flip scale the bufferindex", 400 - flip_width_range_scale(ui_current_state.get("bufferIndex")))
 
-				 if (d3.event.defaultPrevented) return;
+				// console.log("drag start event x", d3.event.x, "source x", ui_current_state.get("bufferIndex"),d, 400 - flip_width_range_scale(ui_current_state.get("bufferIndex")),frameConfig.numPoints)
+				// ui_current_state.set("bu",d3.event.x)
+			}
+			function dragend(d) {
+        
+				//  if (d3.event.defaultPrevented) return;
+				// console.log("buferinderx in dragend",ui_current_state.get("bufferIndex"))
 				var x = d3.event.x;
-			  var y = d3.event.y;
-				// ui_current_state.set("data_map_buffr_ind",[reverse_width_scale(d3.event.x)])
-				// requestAnimationFrame(animateScene);
-				// animateScene(); ui_current_state.get("data_map_buffr_ind")
 				
-				// requestStream.frame_counter = Math.floor(d3.event.x) //width_range_scale( d3.event.x);
-				fm = requestStream.frame_counter + Math.floor(d3.event.x)
-				setTimeout(function() {
+				total_drag_move = x
+				var orig = 400 - flip_width_range_scale(ui_current_state.get("bufferIndex"))
+				net_move = x - orig - inital_pick_dislocation
+				// console.log("orig", orig)
+					var moveto = orig + x - inital_pick_dislocation;;
+					var altmoveto = orig + width_range_scale(net_move);
+					// console.log("x in dragend",x," and total_drag_move" ,total_drag_move, "and net move",net_move, "with inital dislocation of",inital_pick_dislocation, "altmoveto",altmoveto)
+					// console.log("orig + x",moveto, "origin + width_range_scale(x)",altmoveto)
+					var movetoasindex = frameConfig.numPoints -  width_range_scale(altmoveto)
+					// console.log("movetoasindex",movetoasindex)
+
+				// console.log("drag end x",x,width_range_scale(x), 400 - flip_width_range_scale(ui_current_state.get("bufferIndex")), x + 400 - flip_width_range_scale(ui_current_state.get("bufferIndex")))
+
+				// ui_current_state.set("bufferIndex",width_range_scale(x + 400 - flip_width_range_scale(ui_current_state.get("bufferIndex"))))
+			  // var y = d3.event.y;
+			  // var bu = ui_current_state.get("bu")
+			  // console.log("bu",bu, "ui_current_state get",ui_current_state.get("data_map_buffr_ind")[0])
+				// ui_current_state.set("data_map_buffr_ind",[reverse_width_scale(d3.event.x+bu+width_scale(d3.isoParse (ui_current_state.get("data_map_buffr_ind")[0])))])
+			  
+				// ui_current_state.set("data_map_buffr_ind",[reverse_width_scale(d3.event.x)])
+				// // requestAnimationFrame(animateScene);
+				// // animateScene(); ui_current_state.get("data_map_buffr_ind")
+				
+				// // requestStream.frame_counter = Math.floor(d3.event.x) //width_range_scale( d3.event.x);
+				// //clearTimeout(frametimeout);
+				// fm = requestStream.frame_counter + Math.floor(d3.event.x)
+        
+		  //   requestStream.frame_counter = fm;
+				//frametimeout = setTimeout(function() {
 					
 			        //myReq = requestAnimationFrame(animateScene);
 			        //requestStream.frame_counter = fm
-			        animateScene()
+			        // console.log("drag end-- amount it moved scaled to width",width_range_scale(x))
+			        // console.log("in animate",width_range_scale(x + 400 - flip_width_range_scale(ui_current_state.get("bufferIndex"))))
+			        ui_current_state.set("bufferIndex",movetoasindex)
+			        staticAnimate()
+			        // animateScene()
 			        // Drawing code goes here
-			    }, 1000 / fps);
+			    //}, 1000 / fps);
 
 			}
 			function dragmove(d) {
 				// console.log("ffff")
 				if (d3.event.defaultPrevented) return;
 				ui_current_state.set("slider_decides",1)
+				
+				// console.log("before move d.x", d, "before move ui_current_state", ui_current_state.get("data_map_buffr_ind")[0],width_scale(buffertime))
 			  var x = d3.event.x;
 			  var y = d3.event.y;
+				// console.log("drag move x position", x, d3.mouse(this))
+				// console.log(x)
+				// console.log(flip_width_range_scale(ui_current_state.get("bufferIndex")))
 				
+				
+				// console.log("ui_current_state set",reverse_width_scale(d3.event.x)+width_scale(bu))
 				// console.log(ui_current_state.get("data_map_buffr_ind")[0])
 				// console.log(reverse_width_scale(d3.event.x))
+				// var orig = 400 - flip_width_range_scale(ui_current_state.get("bufferIndex"))
+				// var moveto = orig + 400;
+
 			  d3.select(this).attr("transform", "translate(" + x + "," + 0 + ")");
+			  // ui_current_state.set("bufferIndex",width_range_scale(x + 400 - flip_width_range_scale(ui_current_state.get("bufferIndex"))))
+			  
 			  		
 			  		// animateScene()
 				// myReq = requestAnimationFrame(animateScene);
